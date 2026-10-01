@@ -1,5 +1,3 @@
-﻿node_modules/
-bin/
+﻿bin/
 obj/
-.vs/
-.env
+node_modules/

@@ -1,0 +1,135 @@
+/* Navigation and Header Styles */
+.site-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 896px;
+  height: 180px;
+  margin: 0 auto;
+}
+
+.logo {
+  font: 700 30px/1 Lora, Georgia, serif;
+}
+
+.logo-button,
+.nav-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+nav {
+  display: flex;
+  gap: 27px;
+  align-items: center;
+}
+
+nav a {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.1px;
+}
+
+nav a.active {
+  color: var(--accent);
+}
+
+.site-header .logo-button:hover,
+.site-header nav a:hover,
+.site-header nav .nav-button:hover {
+  color: var(--accent);
+}
+
+/* Search Box */
+.nav-search {
+  display: flex;
+  align-items: center;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  transition: width .42s var(--ease-smooth), border-color .3s var(--ease-soft), background .3s var(--ease-soft);
+}
+
+.nav-search.open {
+  width: 142px;
+  border-color: #918f8f;
+  background: #1d1d1d;
+}
+
+.nav-search input {
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font: 400 10px Inter, Arial, sans-serif;
+}
+
+.nav-search.open input {
+  flex: 1;
+  width: auto;
+  padding-left: 8px;
+}
+
+.nav-search input::placeholder {
+  color: #918f8f;
+}
+
+.nav-search button {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.search-icon {
+  position: relative;
+  display: block;
+  width: 10px;
+  height: 10px;
+  margin: auto;
+  border: 1.5px solid #a6a6a6;
+  border-radius: 50%;
+}
+
+.search-icon::after {
+  position: absolute;
+  right: -4px;
+  bottom: -3px;
+  width: 5px;
+  height: 1.5px;
+  background: #a6a6a6;
+  content: '';
+  transform: rotate(45deg);
+  transform-origin: left center;
+}
+
+.nav-search:hover,
+.nav-search:focus-within {
+  border-color: var(--accent);
+}
+
+.nav-search:hover .search-icon,
+.nav-search:focus-within .search-icon {
+  border-color: var(--accent);
+}
+
+.nav-search:hover .search-icon::after,
+.nav-search:focus-within .search-icon::after {
+  background: var(--accent);
+}
