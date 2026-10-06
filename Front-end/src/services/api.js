@@ -1,12 +1,8 @@
 import { bookImages, filmImages, homeNews, homeReviews } from '../data/homeData'
 import { profileActivities, profileBooks, profileMovies, profileUser } from '../data/profileData'
 
-// Endereço base da API backend (.NET)
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
-/**
- * Função utilitária para requisições HTTP seguras com fallback.
- */
 async function fetchWithFallback(endpoint, options = {}) {
   try {
     const controller = new AbortController()
@@ -34,11 +30,11 @@ async function fetchWithFallback(endpoint, options = {}) {
   }
 }
 
-// ============================================================================
 // SERVIÇOS DE FILMES
-// ============================================================================
+
 export async function getFilmes() {
   const data = await fetchWithFallback('/Filmes')
+
   if (data && Array.isArray(data) && data.length > 0) {
     return data.map((f) => ({
       id: f.idFilme,
@@ -48,7 +44,7 @@ export async function getFilmes() {
       cover: f.posterUrl
     }))
   }
-  // Fallback para os dados do protótipo
+
   return filmImages.map((img, idx) => ({
     id: idx + 1,
     coverName: img,
@@ -57,11 +53,11 @@ export async function getFilmes() {
   }))
 }
 
-// ============================================================================
 // SERVIÇOS DE LIVROS
-// ============================================================================
+
 export async function getLivros() {
   const data = await fetchWithFallback('/Livros')
+
   if (data && Array.isArray(data) && data.length > 0) {
     return data.map((l) => ({
       id: l.idLivros,
@@ -71,7 +67,7 @@ export async function getLivros() {
       cover: l.capaUrl
     }))
   }
-  // Fallback para os dados do protótipo
+
   return bookImages.map((img, idx) => ({
     id: idx + 1,
     coverName: img,
@@ -80,11 +76,11 @@ export async function getLivros() {
   }))
 }
 
-// ============================================================================
 // SERVIÇOS DE REVIEWS / AVALIAÇÕES
-// ============================================================================
+
 export async function getReviews() {
   const data = await fetchWithFallback('/Reviews')
+
   if (data && Array.isArray(data) && data.length > 0) {
     return data.map((r) => ({
       id: r.idReviews,
@@ -99,7 +95,7 @@ export async function getReviews() {
       rating: r.nota || r.notaLivro || 5
     }))
   }
-  // Fallback para os dados mockados
+
   return homeReviews
 }
 
@@ -116,40 +112,37 @@ export async function createReview(reviewData) {
       nota: reviewData.rating || 5
     })
   })
+
   return result
 }
 
-// ============================================================================
 // SERVIÇOS DE USUÁRIOS & AUTENTICAÇÃO
-// ============================================================================
+
 export async function getUsuarios() {
   const data = await fetchWithFallback('/Usuarios')
   return data || [profileUser]
 }
 
 export async function loginUsuario(username, password) {
-  // Chamada de autenticação via API
-  const usuarios = await fetchWithFallback('/Usuarios')
-  if (usuarios && Array.isArray(usuarios)) {
-    const user = usuarios.find(
-      (u) => u.nome?.toLowerCase() === username.toLowerCase() || u.email?.toLowerCase() === username.toLowerCase()
-    )
-    if (user) {
-      return { success: true, user }
-    }
-  }
-  // Simulação de login local caso o backend não tenha dados ainda
-  if (username && password) {
+  const result = await fetchWithFallback('/Usuarios/login', {
+    method: 'POST',
+    body: JSON.stringify({
+      email: username,
+      senha: password
+    })
+  })
+
+  if (!result) {
     return {
-      success: true,
-      user: {
-        idUsuario: 1,
-        nome: username,
-        bio: profileUser.bio
-      }
+      success: false,
+      message: 'E-mail ou senha inválidos.'
     }
   }
-  return { success: false, message: 'Usuário ou senha inválidos' }
+
+  return {
+    success: true,
+    user: result
+  }
 }
 
 export async function cadastrarUsuario(nome, email, senha) {
@@ -158,8 +151,9 @@ export async function cadastrarUsuario(nome, email, senha) {
     body: JSON.stringify({
       nome,
       email,
-      senhaHash: senha
+      senha
     })
   })
+
   return result
 }

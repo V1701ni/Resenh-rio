@@ -3,7 +3,7 @@ import { Navigation } from '../components/common/Navigation'
 import { loginUsuario } from '../services/api'
 import { loginBackground, profileIcon } from '../utils/assetLoader'
 
-export function LoginPage({ onHome, onProfile, onLogin }) {
+export function LoginPage({ onHome, onProfile, onLogin, onCadastro }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -16,6 +16,7 @@ export function LoginPage({ onHome, onProfile, onLogin }) {
 
     try {
       const result = await loginUsuario(username, password)
+
       if (result.success) {
         onProfile()
       } else {
@@ -69,7 +70,14 @@ export function LoginPage({ onHome, onProfile, onLogin }) {
         </h1>
 
         {error && (
-          <p style={{ color: '#ff6b6b', fontSize: '12px', textAlign: 'center', margin: '0 0 12px' }}>
+          <p
+            style={{
+              color: '#ff6b6b',
+              fontSize: '12px',
+              textAlign: 'center',
+              margin: '0 0 12px'
+            }}
+          >
             {error}
           </p>
         )}
@@ -116,7 +124,16 @@ export function LoginPage({ onHome, onProfile, onLogin }) {
         </button>
 
         <p className="register-login">
-          Não tem uma conta? <a href="#cadastro">Cadastre-se</a>
+          Não tem uma conta?{' '}
+          <a
+            href="#"
+            onClick={(event) => {
+              event.preventDefault()
+              onCadastro()
+            }}
+          >
+            Cadastre-se
+          </a>
         </p>
 
         <a className="forgot-login" href="#recuperar">

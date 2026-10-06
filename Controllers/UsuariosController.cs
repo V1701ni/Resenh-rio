@@ -16,35 +16,86 @@ namespace MeuProjeto.Controllers
             _context = context;
         }
 
-        // GET: api/Usuarios
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Usuario>>> GetUsuarios()
+        // POST: api/Usuarios
+        [HttpPost]
+        public async Task<ActionResult> PostUsuario(UsuarioAuth dados)
         {
-            return await _context.Usuarios.ToListAsync();
+            if (string.IsNullOrWhiteSpace(dados.Nome) ||
+                string.IsNullOrWhiteSpace(dados.Email) ||
+                string.IsNullOrWhiteSpace(dados.Senha))
+            {
+                return BadRequest("Nome, e-mail e senha s„o obrigatÛrios.");
+            }
+
+            var emailExiste = await _context.Usuarios
+                .AnyAsync(u => u.Email == dados.Email);
+
+            if (emailExiste)
+            {
+                return Conflict("J· existe um usu·rio com este e-mail.");
+            }
+
+            var usuario = new Usuario
+            {
+                Nome = dados.Nome,
+                Email = dados.Email,
+                SenhaHash = BCrypt.Net.BCrypt.HashPassword(dados.Senha)
+            };
+
+            _context.Usuarios.Add(usuario);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(
+                nameof(GetUsuario),
+                new { id = usuario.IdUsuario },
+                new
+                {
+                    usuario.IdUsuario,
+                    usuario.Nome,
+                    usuario.Email,
+                    usuario.DataCadastro
+                });
+        }
+
+        // POST: api/Usuarios/login
+        [HttpPost("login")]
+        public async Task<ActionResult> Login(UsuarioAuth dados)
+        {
+            var usuario = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Email == dados.Email);
+
+            if (usuario == null ||
+                !BCrypt.Net.BCrypt.Verify(dados.Senha, usuario.SenhaHash))
+            {
+                return Unauthorized("E-mail ou senha inv·lidos.");
+            }
+
+            return Ok(new
+            {
+                usuario.IdUsuario,
+                usuario.Nome,
+                usuario.Email
+            });
         }
 
         // GET: api/Usuarios/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Usuario>> GetUsuario(int id)
+        public async Task<ActionResult> GetUsuario(int id)
         {
             var usuario = await _context.Usuarios.FindAsync(id);
 
             if (usuario == null)
             {
-                return NotFound("Usu√°rio n√£o encontrado.");
+                return NotFound("Usu·rio n„o encontrado.");
             }
 
-            return usuario;
-        }
-
-        // POST: api/Usuarios
-        [HttpPost]
-        public async Task<ActionResult<Usuario>> PostUsuario(Usuario usuario)
-        {
-            _context.Usuarios.Add(usuario);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetUsuario), new { id = usuario.IdUsuario }, usuario);
+            return Ok(new
+            {
+                usuario.IdUsuario,
+                usuario.Nome,
+                usuario.Email,
+                usuario.DataCadastro
+            });
         }
 
         // DELETE: api/Usuarios/5
@@ -52,9 +103,10 @@ namespace MeuProjeto.Controllers
         public async Task<IActionResult> DeleteUsuario(int id)
         {
             var usuario = await _context.Usuarios.FindAsync(id);
+
             if (usuario == null)
             {
-                return NotFound("Usu√°rio n√£o encontrado para exclus√£o.");
+                return NotFound("Usu·rio n„o encontrado para exclus„o.");
             }
 
             _context.Usuarios.Remove(usuario);

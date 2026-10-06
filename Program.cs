@@ -28,8 +28,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // 3. Configuração da conexão com o MySQL
-var connectionString = "Server=127.0.0.1;Port=3306;Database=resenhario_db;User=root;Password=\"kety1901@\";";
-
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 30))));
 

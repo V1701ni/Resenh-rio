@@ -9,6 +9,6 @@ public class Estante
     public DateTime DataAtualizacao { get; set; } = DateTime.UtcNow;
 
     // Propriedades de Navegação
-    public Usuario Usuario { get; set; } = null!;
-    public Livro Livro { get; set; } = null!;
+    public Usuario? Usuario { get; set; }
+    public Livro? Livro { get; set; }
 }

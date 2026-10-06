@@ -3,20 +3,27 @@ import './App.css'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { CadastroPage } from './pages/CadastroPage'
 
 function App() {
   const [screen, setScreen] = useState(() => {
     const hash = window.location.hash.slice(1)
+
     if (hash === 'login') return 'login'
+    if (hash === 'cadastro') return 'cadastro'
     if (hash === 'perfil') return 'profile'
+
     return 'home'
   })
 
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1)
+
       if (hash === 'login') {
         setScreen('login')
+      } else if (hash === 'cadastro') {
+        setScreen('cadastro')
       } else if (hash === 'perfil') {
         setScreen('profile')
       } else {
@@ -25,6 +32,7 @@ function App() {
     }
 
     window.addEventListener('hashchange', handleHashChange)
+
     return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
 
@@ -40,6 +48,12 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const goCadastro = () => {
+    setScreen('cadastro')
+    window.history.replaceState(null, '', '#cadastro')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const goProfile = () => {
     setScreen('profile')
     window.history.replaceState(null, '', '#perfil')
@@ -49,6 +63,17 @@ function App() {
   if (screen === 'login') {
     return (
       <LoginPage
+        onHome={goHome}
+        onLogin={goLogin}
+        onProfile={goProfile}
+        onCadastro={goCadastro}
+      />
+    )
+  }
+
+  if (screen === 'cadastro') {
+    return (
+      <CadastroPage
         onHome={goHome}
         onLogin={goLogin}
         onProfile={goProfile}
