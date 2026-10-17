@@ -29,8 +29,11 @@ nav {
   align-items: center;
 }
 
-nav a {
+/* Links e botão PERFIL com exatamente o mesmo texto */
+nav a,
+nav .nav-button {
   color: var(--muted);
+  font-family: Inter, Arial, sans-serif;
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 1.1px;

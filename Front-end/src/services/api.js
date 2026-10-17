@@ -4,9 +4,45 @@ import { profileActivities, profileBooks, profileMovies, profileUser } from '../
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 // Leituras caem nos dados de exemplo rapidamente; login e cadastro esperam mais,
-// porque o servidor gratuito do Render pode levar um tempo para acordar.
+// porque o servidor gratuito pode levar um tempo para acordar.
 const READ_TIMEOUT_MS = 4000
 const AUTH_TIMEOUT_MS = 45000
+
+const SESSION_KEY = 'resenhario:usuario'
+
+// SESSÃO (quem está logado neste navegador)
+
+export function salvarUsuarioLogado(user) {
+  try {
+    localStorage.setItem(
+      SESSION_KEY,
+      JSON.stringify({
+        idUsuario: user.idUsuario,
+        nome: user.nome,
+        email: user.email
+      })
+    )
+  } catch {
+    // Armazenamento indisponível (modo privado, por exemplo): segue sem salvar.
+  }
+}
+
+export function getUsuarioLogado() {
+  try {
+    const saved = localStorage.getItem(SESSION_KEY)
+    return saved ? JSON.parse(saved) : null
+  } catch {
+    return null
+  }
+}
+
+export function sair() {
+  try {
+    localStorage.removeItem(SESSION_KEY)
+  } catch {
+    // Nada a fazer se o armazenamento estiver indisponível.
+  }
+}
 
 // HELPERS DE REQUISIÇÃO
 
@@ -156,7 +192,7 @@ export async function createReview(reviewData) {
   const result = await fetchWithFallback('/Reviews', {
     method: 'POST',
     body: JSON.stringify({
-      idUsuario: reviewData.idUsuario || 1,
+      idUsuario: reviewData.idUsuario || getUsuarioLogado()?.idUsuario || 1,
       idLivro: reviewData.idLivro || null,
       idAdaptacao: reviewData.idAdaptacao || null,
       notaLivro: reviewData.rating || 5,
@@ -201,6 +237,8 @@ export async function loginUsuario(email, password) {
     }
   }
 
+  salvarUsuarioLogado(result.data)
+
   return { success: true, user: result.data }
 }
 
@@ -235,11 +273,4 @@ export async function criarConta(nome, email, senha) {
   }
 
   return { success: true, user: result.data }
-}
-
-// Mantida só para a CadastroPage atual não quebrar (devolve o usuário ou null).
-// Quando a CadastroPage passar a usar criarConta, esta função pode ser apagada.
-export async function cadastrarUsuario(nome, email, senha) {
-  const result = await criarConta(nome, email, senha)
-  return result.success ? result.user : null
 }

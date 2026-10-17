@@ -2,9 +2,26 @@ import { Navigation } from '../components/common/Navigation'
 import { ActivityCard } from '../components/profile/ActivityCard'
 import { MediaRow } from '../components/profile/MediaRow'
 import { ProfileSummary } from '../components/profile/ProfileSummary'
-import { profileActivities, profileBooks, profileMovies } from '../data/profileData'
+import {
+  profileActivities,
+  profileBooks,
+  profileMovies,
+  profileUser
+} from '../data/profileData'
+import { getUsuarioLogado } from '../services/api'
 
 export function ProfilePage({ onHome, onLogin, onStart, onProfile }) {
+  const usuario = getUsuarioLogado()
+
+  // Logado: mostra o nome da pessoa. Sem login: mantém o perfil de exemplo.
+  const user = usuario
+    ? {
+        ...profileUser,
+        name: usuario.nome,
+        bio: 'Bem-vindo(a) ao seu perfil no Resenhário.'
+      }
+    : profileUser
+
   return (
     <main className="profile-page">
       <div className="hero-background" aria-hidden="true" />
@@ -18,7 +35,7 @@ export function ProfilePage({ onHome, onLogin, onStart, onProfile }) {
       />
 
       <div className="page-content">
-        <ProfileSummary />
+        <ProfileSummary user={user} />
 
         <MediaRow title="FILMES RECENTES" items={profileMovies} />
 
