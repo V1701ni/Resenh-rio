@@ -3,21 +3,51 @@ import { Navigation } from '../components/common/Navigation'
 import { loginUsuario } from '../services/api'
 import { loginBackground, profileIcon } from '../utils/assetLoader'
 
+const REMEMBER_KEY = 'resenhario:email'
+
+function getRememberedEmail() {
+  try {
+    return localStorage.getItem(REMEMBER_KEY) || ''
+  } catch {
+    return ''
+  }
+}
+
+function saveRememberedEmail(email, remember) {
+  try {
+    if (remember) {
+      localStorage.setItem(REMEMBER_KEY, email)
+    } else {
+      localStorage.removeItem(REMEMBER_KEY)
+    }
+  } catch {
+    // Armazenamento indisponível (modo privado, por exemplo): segue sem lembrar.
+  }
+}
+
 export function LoginPage({ onHome, onProfile, onLogin, onCadastro }) {
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState(getRememberedEmail)
   const [password, setPassword] = useState('')
+  const [remember, setRemember] = useState(() => getRememberedEmail() !== '')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+
+    if (loading) return
+
     setError('')
     setLoading(true)
 
+    const cleanEmail = email.trim()
+
     try {
-      const result = await loginUsuario(username, password)
+      const result = await loginUsuario(cleanEmail, password)
 
       if (result.success) {
+        saveRememberedEmail(cleanEmail, remember)
         onProfile()
       } else {
         setError(result.message || 'Falha ao autenticar. Tente novamente.')
@@ -27,6 +57,11 @@ export function LoginPage({ onHome, onProfile, onLogin, onCadastro }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleForgot = (event) => {
+    event.preventDefault()
+    setError('A recuperação de senha ainda não está disponível.')
   }
 
   return (
@@ -42,10 +77,7 @@ export function LoginPage({ onHome, onProfile, onLogin, onCadastro }) {
         onProfile={onProfile}
       />
 
-      <section
-        className="login-copy"
-        aria-labelledby="login-copy-title"
-      >
+      <section className="login-copy" aria-labelledby="login-copy-title">
         <h2 id="login-copy-title">
           Monte sua estante
           <br />
@@ -61,6 +93,7 @@ export function LoginPage({ onHome, onProfile, onLogin, onCadastro }) {
       <form
         className="login-card"
         aria-label="Formulário de login"
+        aria-busy={loading}
         onSubmit={handleSubmit}
       >
         <h1>
@@ -70,14 +103,7 @@ export function LoginPage({ onHome, onProfile, onLogin, onCadastro }) {
         </h1>
 
         {error && (
-          <p
-            style={{
-              color: '#ff6b6b',
-              fontSize: '12px',
-              textAlign: 'center',
-              margin: '0 0 12px'
-            }}
-          >
+          <p id="login-error" className="login-error" role="alert">
             {error}
           </p>
         )}
@@ -86,13 +112,15 @@ export function LoginPage({ onHome, onProfile, onLogin, onCadastro }) {
           <img src={profileIcon} alt="" />
 
           <input
-            type="text"
-            name="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-            placeholder="Usuário"
-            aria-label="Usuário"
+            type="email"
+            name="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            inputMode="email"
+            placeholder="E-mail"
+            aria-label="E-mail"
+            aria-describedby={error ? 'login-error' : undefined}
             required
           />
         </label>
@@ -103,21 +131,43 @@ export function LoginPage({ onHome, onProfile, onLogin, onCadastro }) {
           </span>
 
           <input
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             name="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
             placeholder="Senha"
             aria-label="Senha"
+            aria-describedby={error ? 'login-error' : undefined}
             required
           />
+
+          <button
+            className="password-toggle"
+            type="button"
+            onClick={() => setShowPassword((visible) => !visible)}
+            aria-pressed={showPassword}
+            aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+          >
+            {showPassword ? 'Ocultar' : 'Mostrar'}
+          </button>
         </label>
 
-        <label className="remember-login">
-          <input type="checkbox" name="remember" />
-          <span>Lembrar senha</span>
-        </label>
+        <div className="login-options">
+          <label className="remember-login">
+            <input
+              type="checkbox"
+              name="remember"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+            <span>Lembrar e-mail</span>
+          </label>
+
+          <a className="forgot-login" href="#" onClick={handleForgot}>
+            Esqueceu sua senha?
+          </a>
+        </div>
 
         <button className="login-submit" type="submit" disabled={loading}>
           {loading ? 'Entrando...' : 'Entrar'}
@@ -126,7 +176,7 @@ export function LoginPage({ onHome, onProfile, onLogin, onCadastro }) {
         <p className="register-login">
           Não tem uma conta?{' '}
           <a
-            href="#"
+            href="#cadastro"
             onClick={(event) => {
               event.preventDefault()
               onCadastro()
@@ -135,10 +185,6 @@ export function LoginPage({ onHome, onProfile, onLogin, onCadastro }) {
             Cadastre-se
           </a>
         </p>
-
-        <a className="forgot-login" href="#recuperar">
-          Esqueceu sua senha?
-        </a>
       </form>
     </main>
   )
