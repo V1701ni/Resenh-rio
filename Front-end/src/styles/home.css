@@ -113,8 +113,9 @@
 .home-content {
   position: relative;
   z-index: 2;
-  width: 866px;
-  margin: -72px auto 0;
+  width: min(100%, 1200px);
+  margin: 0 auto;
+  padding-bottom: 80px;
 }
 
 .home-content h2 {
@@ -447,4 +448,28 @@
   color: #918f8f;
   font-size: 13px;
   text-align: center;
+}
+
+.search-results-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 18px 0 0;
+  padding: 10px 14px;
+  border: 1px solid rgba(248, 187, 118, .35);
+  border-radius: 999px;
+  background: rgba(248, 187, 118, .08);
+  color: #f8bb76;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+}
+
+.search-results-banner strong {
+  color: #fff;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
 }

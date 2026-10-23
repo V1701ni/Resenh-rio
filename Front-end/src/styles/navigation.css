@@ -53,20 +53,20 @@ nav a.active {
 .nav-search {
   display: flex;
   align-items: center;
-  width: 24px;
-  height: 24px;
+  width: 142px;
+  height: 32px;
   margin: 0;
   overflow: hidden;
-  border: 1px solid transparent;
-  border-radius: 3px;
-  background: transparent;
-  transition: width .42s var(--ease-smooth), border-color .3s var(--ease-soft), background .3s var(--ease-soft);
+  border: 1px solid rgba(145, 143, 143, .8);
+  border-radius: 999px;
+  background: rgba(29, 29, 29, .85);
+  transition: width .42s var(--ease-smooth), border-color .3s var(--ease-soft), background .3s var(--ease-soft), box-shadow .3s ease;
 }
 
 .nav-search.open {
-  width: 142px;
-  border-color: #918f8f;
-  background: #1d1d1d;
+  width: 172px;
+  border-color: #f8bb76;
+  box-shadow: 0 0 0 1px rgba(248, 187, 118, .25);
 }
 
 .nav-search input {
@@ -83,7 +83,7 @@ nav a.active {
 .nav-search.open input {
   flex: 1;
   width: auto;
-  padding-left: 8px;
+  padding-left: 10px;
 }
 
 .nav-search input::placeholder {

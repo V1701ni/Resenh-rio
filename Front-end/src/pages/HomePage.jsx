@@ -8,6 +8,7 @@ import { bookImages, filmImages } from '../data/homeData'
 
 export function HomePage({ onHome, onLogin, onProfile }) {
   const [searchQuery, setSearchQuery] = useState('')
+  const normalizedQuery = searchQuery.trim()
 
   useEffect(() => {
     const section = window.location.hash.slice(1)
@@ -58,6 +59,13 @@ export function HomePage({ onHome, onLogin, onProfile }) {
       />
 
       <div className="home-content">
+        {normalizedQuery && (
+          <div className="search-results-banner">
+            <span>RESULTADOS PARA</span>
+            <strong>“{normalizedQuery}”</strong>
+          </div>
+        )}
+
         <HomeMedia title="FILMES EM ALTA" images={filmImages} />
         <HomeMedia title="LIVROS EM ALTA" images={bookImages} />
         <HomeReviews query={searchQuery} />

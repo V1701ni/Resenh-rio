@@ -24,21 +24,25 @@ namespace MeuProjeto.Controllers
                 string.IsNullOrWhiteSpace(dados.Email) ||
                 string.IsNullOrWhiteSpace(dados.Senha))
             {
-                return BadRequest("Nome, e-mail e senha são obrigatórios.");
+                return BadRequest("Nome, e-mail e senha sï¿½o obrigatï¿½rios.");
+            }
+
+            if (dados.Senha.Length < 6)
+            {
+                return BadRequest("A senha deve ter pelo menos 6 caracteres.");
             }
 
             var emailExiste = await _context.Usuarios
                 .AnyAsync(u => u.Email == dados.Email);
-
             if (emailExiste)
             {
-                return Conflict("Já existe um usuário com este e-mail.");
+                return Conflict("Jï¿½ existe um usuï¿½rio com este e-mail.");
             }
 
             var usuario = new Usuario
             {
-                Nome = dados.Nome,
-                Email = dados.Email,
+                Nome = dados.Nome.Trim(),
+                Email = dados.Email.Trim(),
                 SenhaHash = BCrypt.Net.BCrypt.HashPassword(dados.Senha)
             };
 
@@ -61,13 +65,18 @@ namespace MeuProjeto.Controllers
         [HttpPost("login")]
         public async Task<ActionResult> Login(UsuarioAuth dados)
         {
+            if (string.IsNullOrWhiteSpace(dados.Email) || string.IsNullOrWhiteSpace(dados.Senha))
+            {
+                return BadRequest("E-mail e senha sï¿½o obrigatï¿½rios.");
+            }
+
             var usuario = await _context.Usuarios
-                .FirstOrDefaultAsync(u => u.Email == dados.Email);
+                .FirstOrDefaultAsync(u => u.Email == dados.Email.Trim());
 
             if (usuario == null ||
                 !BCrypt.Net.BCrypt.Verify(dados.Senha, usuario.SenhaHash))
             {
-                return Unauthorized("E-mail ou senha inválidos.");
+                return Unauthorized("E-mail ou senha invï¿½lidos.");
             }
 
             return Ok(new
@@ -86,7 +95,7 @@ namespace MeuProjeto.Controllers
 
             if (usuario == null)
             {
-                return NotFound("Usuário não encontrado.");
+                return NotFound("Usuï¿½rio nï¿½o encontrado.");
             }
 
             return Ok(new
@@ -106,7 +115,7 @@ namespace MeuProjeto.Controllers
 
             if (usuario == null)
             {
-                return NotFound("Usuário não encontrado para exclusão.");
+                return NotFound("Usuï¿½rio nï¿½o encontrado para exclusï¿½o.");
             }
 
             _context.Usuarios.Remove(usuario);

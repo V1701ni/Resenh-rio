@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MeuProjeto.Data;
 using MeuProjeto.Models;
+using MeuProjeto.Services;
 
 namespace MeuProjeto.Controllers
 {
@@ -10,17 +11,21 @@ namespace MeuProjeto.Controllers
     public class LivrosController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ExternalApiService _externalApiService;
 
-        public LivrosController(AppDbContext context)
+        public LivrosController(AppDbContext context, ExternalApiService externalApiService)
         {
             _context = context;
+            _externalApiService = externalApiService;
         }
 
         // GET: api/Livros
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Livro>>> GetLivros()
         {
-            return await _context.Livros.ToListAsync();
+            return await _context.Livros
+                .OrderByDescending(l => l.DataCadastro)
+                .ToListAsync();
         }
 
         // GET: api/Livros/5
@@ -37,10 +42,39 @@ namespace MeuProjeto.Controllers
             return livro;
         }
 
+        // GET: api/Livros/buscar
+        [HttpGet("buscar")]
+        public async Task<ActionResult<IEnumerable<Livro>>> BuscarLivros([FromQuery] string q)
+        {
+            if (string.IsNullOrWhiteSpace(q))
+            {
+                return Ok(new List<Livro>());
+            }
+
+            var local = await _context.Livros
+                .Where(l => l.Titulo.Contains(q) || l.Autor.Contains(q))
+                .Take(10)
+                .ToListAsync();
+
+            if (local.Count > 0)
+            {
+                return Ok(local);
+            }
+
+            var externos = await _externalApiService.SearchBooksAsync(q, 5);
+            return Ok(externos);
+        }
+
         // POST: api/Livros
         [HttpPost]
         public async Task<ActionResult<Livro>> PostLivro(Livro livro)
         {
+            if (string.IsNullOrWhiteSpace(livro.Titulo))
+            {
+                return BadRequest("Título do livro é obrigatório.");
+            }
+
+            livro.DataCadastro = DateTime.UtcNow;
             _context.Livros.Add(livro);
             await _context.SaveChangesAsync();
 

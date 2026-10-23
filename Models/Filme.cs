@@ -8,6 +8,7 @@ public class Filme
     public string? Diretor { get; set; }
     public int? AnoLancamento { get; set; }
     public string? PosterUrl { get; set; }
+    public string? Sinopse { get; set; }
 
     // Relacionamentos
     public ICollection<Adaptacao> Adaptacoes { get; set; } = new List<Adaptacao>();

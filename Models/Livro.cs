@@ -9,6 +9,7 @@ public class Livro
     public string? Sinopse { get; set; }
     public string? Isbn { get; set; }
     public string? CapaUrl { get; set; }
+    public DateTime DataCadastro { get; set; } = DateTime.UtcNow;
 
     // Relacionamentos
     public ICollection<Adaptacao> Adaptacoes { get; set; } = new List<Adaptacao>();

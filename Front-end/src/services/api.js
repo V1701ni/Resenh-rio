@@ -1,16 +1,12 @@
-import { bookImages, filmImages, homeNews, homeReviews } from '../data/homeData'
-import { profileActivities, profileBooks, profileMovies, profileUser } from '../data/profileData'
+import { bookImages, filmImages, homeReviews } from '../data/homeData'
+import { profileUser } from '../data/profileData'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5216/api'
 
-// Leituras caem nos dados de exemplo rapidamente; login e cadastro esperam mais,
-// porque o servidor gratuito pode levar um tempo para acordar.
 const READ_TIMEOUT_MS = 4000
 const AUTH_TIMEOUT_MS = 45000
 
 const SESSION_KEY = 'resenhario:usuario'
-
-// SESSÃO (quem está logado neste navegador)
 
 export function salvarUsuarioLogado(user) {
   try {
@@ -44,8 +40,6 @@ export function sair() {
   }
 }
 
-// HELPERS DE REQUISIÇÃO
-
 async function parseBody(response) {
   const text = await response.text()
 
@@ -58,7 +52,6 @@ async function parseBody(response) {
   }
 }
 
-// Nunca lança erro: sempre devolve { ok, status, data, networkError, timedOut }
 async function request(endpoint, options = {}, timeoutMs = AUTH_TIMEOUT_MS) {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
@@ -103,23 +96,17 @@ function networkMessage(result) {
   return 'Não foi possível conectar ao servidor. Verifique sua conexão.'
 }
 
-// Usado nas leituras: em qualquer falha devolve null e a tela usa os dados de exemplo
 async function fetchWithFallback(endpoint, options = {}) {
   const result = await request(endpoint, options, READ_TIMEOUT_MS)
 
   if (!result.ok) {
-    const reason = result.networkError
-      ? 'sem conexão'
-      : `erro ${result.status}`
-
+    const reason = result.networkError ? 'sem conexão' : `erro ${result.status}`
     console.warn(`[API Fallback] Não foi possível usar ${endpoint} (${reason})`)
     return null
   }
 
   return result.data
 }
-
-// SERVIÇOS DE FILMES
 
 export async function getFilmes() {
   const data = await fetchWithFallback('/Filmes')
@@ -142,8 +129,6 @@ export async function getFilmes() {
   }))
 }
 
-// SERVIÇOS DE LIVROS
-
 export async function getLivros() {
   const data = await fetchWithFallback('/Livros')
 
@@ -164,8 +149,6 @@ export async function getLivros() {
     rating: 3.8
   }))
 }
-
-// SERVIÇOS DE REVIEWS / AVALIAÇÕES
 
 export async function getReviews() {
   const data = await fetchWithFallback('/Reviews')
@@ -205,14 +188,11 @@ export async function createReview(reviewData) {
   return result
 }
 
-// SERVIÇOS DE USUÁRIOS & AUTENTICAÇÃO
-
 export async function getUsuarios() {
   const data = await fetchWithFallback('/Usuarios')
   return data || [profileUser]
 }
 
-// Devolve { success: true, user } ou { success: false, message }
 export async function loginUsuario(email, password) {
   const result = await request('/Usuarios/login', {
     method: 'POST',
@@ -242,7 +222,6 @@ export async function loginUsuario(email, password) {
   return { success: true, user: result.data }
 }
 
-// Devolve { success: true, user } ou { success: false, message }
 export async function criarConta(nome, email, senha) {
   const result = await request('/Usuarios', {
     method: 'POST',

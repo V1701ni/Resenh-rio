@@ -16,77 +16,82 @@ namespace MeuProjeto.Controllers
             _context = context;
         }
 
-        // GET: api/Estante/usuario/1
-[HttpGet("usuario/{idUsuario}")]
-public async Task<ActionResult> GetEstanteUsuario(int idUsuario)
-{
-    var estante = await _context.Estantes
-        .Where(e => e.IdUsuario == idUsuario)
-        .Select(e => new
+        [HttpGet("usuario/{idUsuario}")]
+        public async Task<ActionResult> GetEstanteUsuario(int idUsuario)
         {
-            e.IdEstante,
-            e.IdUsuario,
-            e.IdLivros,
-            e.Status,
-            e.DataAtualizacao,
-            Livro = new
-            {
-                e.Livro!.IdLivros,
-                e.Livro.Titulo,
-                e.Livro.Autor,
-                e.Livro.Sinopse,
-                e.Livro.Isbn,
-                e.Livro.CapaUrl,
-                e.Livro.GoogleBId
-            }
-        })
-        .ToListAsync();
+            var estante = await _context.Estantes
+                .Where(e => e.IdUsuario == idUsuario)
+                .Include(e => e.Livro)
+                .OrderByDescending(e => e.DataAtualizacao)
+                .Select(e => new
+                {
+                    e.IdEstante,
+                    e.IdUsuario,
+                    e.IdLivros,
+                    e.Status,
+                    e.DataAtualizacao,
+                    Livro = e.Livro == null ? null : new
+                    {
+                        e.Livro.IdLivros,
+                        e.Livro.Titulo,
+                        e.Livro.Autor,
+                        e.Livro.Sinopse,
+                        e.Livro.Isbn,
+                        e.Livro.CapaUrl,
+                        e.Livro.GoogleBId
+                    }
+                })
+                .ToListAsync();
 
-    return Ok(estante);
-}
+            return Ok(estante);
+        }
 
-        // POST: api/Estante
         [HttpPost]
         public async Task<ActionResult> AdicionarLivro(Estante estante)
         {
-            var usuarioExiste = await _context.Usuarios
-                .AnyAsync(u => u.IdUsuario == estante.IdUsuario);
+            if (estante.IdUsuario <= 0)
+            {
+                return BadRequest("Id do usuário inválido.");
+            }
 
+            if (estante.IdLivros <= 0)
+            {
+                return BadRequest("Id do livro inválido.");
+            }
+
+            var usuarioExiste = await _context.Usuarios.AnyAsync(u => u.IdUsuario == estante.IdUsuario);
             if (!usuarioExiste)
             {
-                return NotFound("Usu�rio n�o encontrado.");
+                return NotFound("Usuário não encontrado.");
             }
 
-            var livroExiste = await _context.Livros
-                .AnyAsync(l => l.IdLivros == estante.IdLivros);
-
+            var livroExiste = await _context.Livros.AnyAsync(l => l.IdLivros == estante.IdLivros);
             if (!livroExiste)
             {
-                return NotFound("Livro n�o encontrado.");
+                return NotFound("Livro não encontrado.");
             }
 
-            var jaExiste = await _context.Estantes
-                .AnyAsync(e =>
-                    e.IdUsuario == estante.IdUsuario &&
-                    e.IdLivros == estante.IdLivros);
-
+            var jaExiste = await _context.Estantes.AnyAsync(e => e.IdUsuario == estante.IdUsuario && e.IdLivros == estante.IdLivros);
             if (jaExiste)
             {
-                return Conflict("Este livro j� est� na estante do usu�rio.");
+                return Conflict("Este livro já está na estante do usuário.");
             }
 
+            var statusValido = new[] { "Quero Ler", "Lendo", "Lido", "Abandonado" };
+            if (!string.IsNullOrWhiteSpace(estante.Status) && !statusValido.Contains(estante.Status))
+            {
+                return BadRequest("Status inválido. Use: Quero Ler, Lendo, Lido ou Abandonado.");
+            }
+
+            estante.Status = string.IsNullOrWhiteSpace(estante.Status) ? "Quero Ler" : estante.Status;
             estante.DataAtualizacao = DateTime.UtcNow;
 
             _context.Estantes.Add(estante);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(
-                nameof(GetEstanteUsuario),
-                new { idUsuario = estante.IdUsuario },
-                estante);
+            return CreatedAtAction(nameof(GetEstanteUsuario), new { idUsuario = estante.IdUsuario }, estante);
         }
 
-        // PUT: api/Estante/5
         [HttpPut("{id}")]
         public async Task<IActionResult> AtualizarEstante(int id, Estante dados)
         {
@@ -94,10 +99,16 @@ public async Task<ActionResult> GetEstanteUsuario(int idUsuario)
 
             if (estante == null)
             {
-                return NotFound("Item da estante n�o encontrado.");
+                return NotFound("Item da estante não encontrado.");
             }
 
-            estante.Status = dados.Status;
+            var statusValido = new[] { "Quero Ler", "Lendo", "Lido", "Abandonado" };
+            if (!string.IsNullOrWhiteSpace(dados.Status) && !statusValido.Contains(dados.Status))
+            {
+                return BadRequest("Status inválido. Use: Quero Ler, Lendo, Lido ou Abandonado.");
+            }
+
+            estante.Status = string.IsNullOrWhiteSpace(dados.Status) ? estante.Status : dados.Status;
             estante.DataAtualizacao = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -105,7 +116,6 @@ public async Task<ActionResult> GetEstanteUsuario(int idUsuario)
             return NoContent();
         }
 
-        // DELETE: api/Estante/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> RemoverLivro(int id)
         {
@@ -113,7 +123,7 @@ public async Task<ActionResult> GetEstanteUsuario(int idUsuario)
 
             if (estante == null)
             {
-                return NotFound("Item da estante n�o encontrado.");
+                return NotFound("Item da estante não encontrado.");
             }
 
             _context.Estantes.Remove(estante);
