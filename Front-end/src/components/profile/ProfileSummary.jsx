@@ -1,18 +1,40 @@
 import { profileUser } from '../../data/profileData'
 import { getProfileImage } from '../../utils/assetLoader'
 
-export function ProfileSummary({ user = profileUser }) {
+export function ProfileSummary({
+  user = profileUser,
+  editButton = null
+}) {
+  const avatarSrc =
+    user.avatar && /^https?:\/\//i.test(user.avatar)
+      ? user.avatar
+      : getProfileImage(user.avatarId || profileUser.avatarId)
+
   return (
     <section className="profile-summary">
+      {user.banner && (
+        <div
+          className="profile-banner"
+          style={{ backgroundImage: `url("${user.banner}")` }}
+          role="img"
+          aria-label="Banner do perfil"
+        />
+      )}
+
+      {editButton}
+
       <img
         className="avatar"
-        src={getProfileImage(user.avatarId)}
-        alt={user.name}
+        src={avatarSrc}
+        alt={`Foto de perfil de ${user.name}`}
       />
 
       <div className="profile-description">
-        <h1>{user.name}</h1>
-        <p>{user.bio}</p>
+        <div className="profile-name-row">
+          <h1>{user.name}</h1>
+        </div>
+
+        <p>{user.bio || 'Adicione uma bio ao seu perfil.'}</p>
       </div>
 
       <div className="stats">

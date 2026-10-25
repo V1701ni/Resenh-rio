@@ -1,25 +1,42 @@
+
 import { bookImages, filmImages, homeReviews } from '../data/homeData'
 import { profileUser } from '../data/profileData'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5216/api'
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:5216/api'
 
 const READ_TIMEOUT_MS = 4000
 const AUTH_TIMEOUT_MS = 45000
-
 const SESSION_KEY = 'resenhario:usuario'
+
+export const STATUS_ESTANTE = {
+  QUERO_LER: 'Quero Ler',
+  LENDO: 'Lendo',
+  LIDO: 'Lido',
+  ABANDONADO: 'Abandonado'
+}
+
+// SESSÃO
 
 export function salvarUsuarioLogado(user) {
   try {
+    const usuarioAtual = getUsuarioLogado() || {}
+
     localStorage.setItem(
       SESSION_KEY,
       JSON.stringify({
-        idUsuario: user.idUsuario,
-        nome: user.nome,
-        email: user.email
+        ...usuarioAtual,
+        ...user,
+        idUsuario: user.idUsuario ?? usuarioAtual.idUsuario,
+        nome: user.nome ?? usuarioAtual.nome,
+        email: user.email ?? usuarioAtual.email,
+        bio: user.bio ?? usuarioAtual.bio ?? '',
+        fotoUrl: user.fotoUrl ?? usuarioAtual.fotoUrl ?? '',
+        bannerUrl: user.bannerUrl ?? usuarioAtual.bannerUrl ?? ''
       })
     )
   } catch {
-    // Armazenamento indisponível (modo privado, por exemplo): segue sem salvar.
+    console.warn('Não foi possível salvar os dados do perfil.')
   }
 }
 
@@ -39,6 +56,8 @@ export function sair() {
     // Nada a fazer se o armazenamento estiver indisponível.
   }
 }
+
+// REQUISIÇÕES HTTP
 
 async function parseBody(response) {
   const text = await response.text()
@@ -93,78 +112,354 @@ function networkMessage(result) {
     return 'O servidor demorou para responder. Ele pode estar iniciando; tente novamente em instantes.'
   }
 
-  return 'Não foi possível conectar ao servidor. Verifique sua conexão.'
+  return 'Não foi possível conectar ao servidor. Verifique se o backend está funcionando.'
 }
 
 async function fetchWithFallback(endpoint, options = {}) {
   const result = await request(endpoint, options, READ_TIMEOUT_MS)
 
   if (!result.ok) {
-    const reason = result.networkError ? 'sem conexão' : `erro ${result.status}`
-    console.warn(`[API Fallback] Não foi possível usar ${endpoint} (${reason})`)
+    const reason = result.networkError
+      ? 'sem conexão'
+      : `erro ${result.status}`
+
+    console.warn(
+      `[API Fallback] Não foi possível usar ${endpoint} (${reason})`
+    )
+
     return null
   }
 
   return result.data
 }
 
+function mapearLivro(livro) {
+  return {
+    id: livro.idLivros ?? livro.id ?? null,
+    idLivros: livro.idLivros ?? livro.id ?? null,
+    googleId: livro.googleBId ?? livro.googleId ?? null,
+    title: livro.titulo ?? livro.title ?? 'Sem título',
+    author: livro.autor ?? livro.author ?? 'Autor desconhecido',
+    synopsis: livro.sinopse ?? livro.synopsis ?? '',
+    isbn: livro.isbn ?? '',
+    cover: livro.capaUrl ?? livro.cover ?? '',
+    capaUrl: livro.capaUrl ?? livro.cover ?? ''
+  }
+}
+
+function mensagemErro(result, mensagemPadrao) {
+  if (result.networkError) {
+    return networkMessage(result)
+  }
+
+  if (typeof result.data === 'string' && result.data) {
+    return result.data
+  }
+
+  return mensagemPadrao
+}
+
+// FILMES
+
 export async function getFilmes() {
   const data = await fetchWithFallback('/Filmes')
 
-  if (data && Array.isArray(data) && data.length > 0) {
-    return data.map((f) => ({
-      id: f.idFilme,
-      title: f.titulo,
-      director: f.diretor,
-      year: f.anoLancamento || 2025,
-      cover: f.posterUrl
+  if (Array.isArray(data) && data.length > 0) {
+    return data.map((filme) => ({
+      id: filme.idFilme,
+      title: filme.titulo,
+      director: filme.diretor,
+      year: filme.anoLancamento || 2025,
+      cover: filme.posterUrl
     }))
   }
 
-  return filmImages.map((img, idx) => ({
-    id: idx + 1,
+  return filmImages.map((img, index) => ({
+    id: index + 1,
     coverName: img,
     year: 2025,
     rating: 3.8
   }))
 }
+
+// LIVROS
 
 export async function getLivros() {
   const data = await fetchWithFallback('/Livros')
 
-  if (data && Array.isArray(data) && data.length > 0) {
-    return data.map((l) => ({
-      id: l.idLivros,
-      title: l.titulo,
-      author: l.autor,
-      synopsis: l.sinopse,
-      cover: l.capaUrl
-    }))
+  if (Array.isArray(data) && data.length > 0) {
+    return data.map(mapearLivro)
   }
 
-  return bookImages.map((img, idx) => ({
-    id: idx + 1,
+  return bookImages.map((img, index) => ({
+    id: index + 1,
     coverName: img,
     year: 2025,
     rating: 3.8
   }))
 }
 
+export async function buscarLivros(consulta) {
+  if (!consulta || !consulta.trim()) {
+    return {
+      success: true,
+      books: [],
+      message: ''
+    }
+  }
+
+  const result = await request(
+    `/Livros/buscar?q=${encodeURIComponent(consulta.trim())}`,
+    {},
+    AUTH_TIMEOUT_MS
+  )
+
+  if (!result.ok) {
+    return {
+      success: false,
+      books: [],
+      message: mensagemErro(result, 'Não foi possível buscar os livros.')
+    }
+  }
+
+  const livros = Array.isArray(result.data) ? result.data : []
+
+  return {
+    success: true,
+    books: livros.map(mapearLivro),
+    message: ''
+  }
+}
+
+// ESTANTE VIRTUAL
+
+function mapearItemEstante(item) {
+  const livro = item.livro ?? item.Livro ?? item.book ?? {}
+
+  return {
+    id: item.idEstante ?? item.id ?? item.IdEstante,
+    status: item.status ?? item.Status ?? STATUS_ESTANTE.QUERO_LER,
+    book: mapearLivro(livro)
+  }
+}
+
+export async function getEstante(idUsuario) {
+  const usuario = getUsuarioLogado()
+  const id = idUsuario ?? usuario?.idUsuario
+
+  if (!id) {
+    return {
+      success: false,
+      items: [],
+      message: 'Faça login para acessar sua estante.'
+    }
+  }
+
+  const result = await request(
+    `/Estante/usuario/${encodeURIComponent(id)}`,
+    {},
+    AUTH_TIMEOUT_MS
+  )
+
+  if (!result.ok) {
+    return {
+      success: false,
+      items: [],
+      message: mensagemErro(result, 'Não foi possível carregar a estante.')
+    }
+  }
+
+  const itens = Array.isArray(result.data) ? result.data : []
+
+  return {
+    success: true,
+    items: itens.map(mapearItemEstante),
+    message: ''
+  }
+}
+
+export async function adicionarNaEstante(book, status = STATUS_ESTANTE.QUERO_LER) {
+  const usuario = getUsuarioLogado()
+  const idUsuario = usuario?.idUsuario
+
+  if (!idUsuario) {
+    return {
+      success: false,
+      message: 'Faça login para adicionar livros à estante.'
+    }
+  }
+
+  if (!book) {
+    return {
+      success: false,
+      message: 'Livro inválido.'
+    }
+  }
+
+  let idLivros = book.idLivros ?? null
+
+  // Se o livro já possui um ID do banco, não precisa cadastrá-lo novamente.
+  if (!idLivros && book.id && !book.googleId) {
+    idLivros = book.id
+  }
+
+  // Livros externos precisam ser cadastrados no banco antes de entrar na estante.
+  if (!idLivros) {
+    if (!book.title && !book.titulo) {
+      return {
+        success: false,
+        message: 'O livro não possui título.'
+      }
+    }
+
+    const dadosLivro = {
+      titulo: book.title ?? book.titulo,
+      autor: book.author ?? book.autor ?? '',
+      sinopse: book.synopsis ?? book.sinopse ?? '',
+      isbn: book.isbn ?? '',
+      capaUrl: book.cover ?? book.capaUrl ?? '',
+      googleBId: book.googleId ?? book.googleBId ?? ''
+    }
+
+    const cadastro = await request(
+      '/Livros',
+      {
+        method: 'POST',
+        body: JSON.stringify(dadosLivro)
+      },
+      AUTH_TIMEOUT_MS
+    )
+
+    if (!cadastro.ok) {
+      return {
+        success: false,
+        message: mensagemErro(
+          cadastro,
+          'Não foi possível cadastrar o livro no banco de dados.'
+        )
+      }
+    }
+
+    idLivros = cadastro.data?.idLivros ?? cadastro.data?.id
+
+    if (!idLivros) {
+      return {
+        success: false,
+        message: 'O servidor cadastrou o livro, mas não retornou seu ID.'
+      }
+    }
+  }
+
+  const result = await request(
+    '/Estante',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        idUsuario,
+        idLivros,
+        status
+      })
+    },
+    AUTH_TIMEOUT_MS
+  )
+
+  if (!result.ok) {
+    return {
+      success: false,
+      message: mensagemErro(
+        result,
+        result.status === 409
+          ? 'Este livro já está na sua estante.'
+          : 'Não foi possível adicionar o livro à estante.'
+      )
+    }
+  }
+
+  return {
+    success: true,
+    message: 'Livro adicionado à estante.'
+  }
+}
+
+export async function atualizarStatusEstante(id, status) {
+  if (!id) {
+    return {
+      success: false,
+      message: 'Item da estante inválido.'
+    }
+  }
+
+  const result = await request(
+    `/Estante/${encodeURIComponent(id)}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ status })
+    },
+    AUTH_TIMEOUT_MS
+  )
+
+  if (!result.ok) {
+    return {
+      success: false,
+      message: mensagemErro(
+        result,
+        'Não foi possível atualizar o status do livro.'
+      )
+    }
+  }
+
+  return {
+    success: true,
+    message: 'Status atualizado.'
+  }
+}
+
+export async function removerDaEstante(id) {
+  if (!id) {
+    return {
+      success: false,
+      message: 'Item da estante inválido.'
+    }
+  }
+
+  const result = await request(
+    `/Estante/${encodeURIComponent(id)}`,
+    {
+      method: 'DELETE'
+    },
+    AUTH_TIMEOUT_MS
+  )
+
+  if (!result.ok) {
+    return {
+      success: false,
+      message: mensagemErro(result, 'Não foi possível remover o livro.')
+    }
+  }
+
+  return {
+    success: true,
+    message: 'Livro removido da estante.'
+  }
+}
+
+// REVIEWS / AVALIAÇÕES
+
 export async function getReviews() {
   const data = await fetchWithFallback('/Reviews')
 
-  if (data && Array.isArray(data) && data.length > 0) {
-    return data.map((r) => ({
-      id: r.idReviews,
-      cover: r.livro?.capaUrl || 'activity-1.png',
-      title: r.livro?.titulo || 'Sem título',
-      year: r.livro?.ano || '2025',
-      copy: r.comentario || '',
+  if (Array.isArray(data) && data.length > 0) {
+    return data.map((review) => ({
+      id: review.idReviews,
+      cover: review.livro?.capaUrl || 'activity-1.png',
+      title: review.livro?.titulo || 'Sem título',
+      year: review.livro?.ano || '2025',
+      copy: review.comentario || '',
       comments: '0 comentários',
       likes: '0 curtidas',
       avatar: 1,
-      reviewer: r.usuario?.nome || 'Usuário Anônimo',
-      rating: r.nota || r.notaLivro || 5
+      reviewer: review.usuario?.nome || 'Usuário Anônimo',
+      rating: review.nota || review.notaLivro || 5
     }))
   }
 
@@ -172,7 +467,7 @@ export async function getReviews() {
 }
 
 export async function createReview(reviewData) {
-  const result = await fetchWithFallback('/Reviews', {
+  return fetchWithFallback('/Reviews', {
     method: 'POST',
     body: JSON.stringify({
       idUsuario: reviewData.idUsuario || getUsuarioLogado()?.idUsuario || 1,
@@ -184,9 +479,9 @@ export async function createReview(reviewData) {
       nota: reviewData.rating || 5
     })
   })
-
-  return result
 }
+
+// USUÁRIOS
 
 export async function getUsuarios() {
   const data = await fetchWithFallback('/Usuarios')
@@ -213,7 +508,10 @@ export async function loginUsuario(email, password) {
   if (!result.ok) {
     return {
       success: false,
-      message: `Erro no servidor (${result.status}). Tente novamente mais tarde.`
+      message: mensagemErro(
+        result,
+        `Erro no servidor (${result.status}). Tente novamente mais tarde.`
+      )
     }
   }
 
@@ -247,169 +545,12 @@ export async function criarConta(nome, email, senha) {
   if (!result.ok) {
     return {
       success: false,
-      message: `Erro no servidor (${result.status}). Tente novamente mais tarde.`
+      message: mensagemErro(
+        result,
+        `Erro no servidor (${result.status}). Tente novamente mais tarde.`
+      )
     }
   }
 
   return { success: true, user: result.data }
-}
-
-// ---------------------------------------------------------------------------
-// Estante virtual e busca de livros
-// ---------------------------------------------------------------------------
-
-export const STATUS_ESTANTE = ['Quero Ler', 'Lendo', 'Lido', 'Abandonado']
-
-// A API devolve mensagens de erro como texto simples; se não vier texto, usa o padrão.
-function errorMessage(result, fallback) {
-  if (typeof result.data === 'string' && result.data.trim()) {
-    return result.data
-  }
-
-  return fallback
-}
-
-function formatBook(l) {
-  return {
-    id: l.idLivros,
-    googleId: l.googleBId,
-    title: l.titulo,
-    author: l.autor,
-    synopsis: l.sinopse,
-    isbn: l.isbn,
-    cover: l.capaUrl
-  }
-}
-
-export async function getEstante(idUsuario) {
-  const result = await request(`/Estante/usuario/${idUsuario}`)
-
-  if (result.networkError) {
-    return { success: false, message: networkMessage(result), items: [] }
-  }
-
-  if (!result.ok) {
-    return {
-      success: false,
-      message: `Erro no servidor (${result.status}). Tente novamente mais tarde.`,
-      items: []
-    }
-  }
-
-  const items = (result.data || []).map((e) => ({
-    id: e.idEstante,
-    status: e.status,
-    updatedAt: e.dataAtualizacao,
-    book: formatBook(e.livro || {})
-  }))
-
-  return { success: true, items }
-}
-
-export async function buscarLivros(termo) {
-  const result = await request(`/Livros/buscar?q=${encodeURIComponent(termo)}`)
-
-  if (result.networkError) {
-    return { success: false, message: networkMessage(result), books: [] }
-  }
-
-  if (!result.ok) {
-    return {
-      success: false,
-      message: `Erro no servidor (${result.status}). Tente novamente mais tarde.`,
-      books: []
-    }
-  }
-
-  return { success: true, books: (result.data || []).map(formatBook) }
-}
-
-export async function adicionarNaEstante(book, status = 'Quero Ler') {
-  const usuario = getUsuarioLogado()
-
-  if (!usuario) {
-    return { success: false, message: 'Entre na sua conta para usar a estante.' }
-  }
-
-  let idLivro = book.id
-
-  // Livros que vieram da Google Books ainda não existem no banco (id = 0):
-  // primeiro salvamos o livro, depois ligamos ele à estante.
-  if (!idLivro) {
-    const livro = await request('/Livros', {
-      method: 'POST',
-      body: JSON.stringify({
-        titulo: book.title,
-        autor: book.author,
-        sinopse: book.synopsis,
-        isbn: book.isbn,
-        capaUrl: book.cover,
-        googleBId: book.googleId
-      })
-    })
-
-    if (livro.networkError) {
-      return { success: false, message: networkMessage(livro) }
-    }
-
-    if (!livro.ok) {
-      return { success: false, message: errorMessage(livro, 'Não foi possível salvar o livro.') }
-    }
-
-    idLivro = livro.data.idLivros
-  }
-
-  const result = await request('/Estante', {
-    method: 'POST',
-    body: JSON.stringify({
-      idUsuario: usuario.idUsuario,
-      idLivros: idLivro,
-      status
-    })
-  })
-
-  if (result.networkError) {
-    return { success: false, message: networkMessage(result) }
-  }
-
-  if (result.status === 409) {
-    return { success: false, message: 'Este livro já está na sua estante.' }
-  }
-
-  if (!result.ok) {
-    return { success: false, message: errorMessage(result, 'Não foi possível adicionar à estante.') }
-  }
-
-  return { success: true }
-}
-
-export async function atualizarStatusEstante(idEstante, status) {
-  const result = await request(`/Estante/${idEstante}`, {
-    method: 'PUT',
-    body: JSON.stringify({ status })
-  })
-
-  if (result.networkError) {
-    return { success: false, message: networkMessage(result) }
-  }
-
-  if (!result.ok) {
-    return { success: false, message: errorMessage(result, 'Não foi possível atualizar o status.') }
-  }
-
-  return { success: true }
-}
-
-export async function removerDaEstante(idEstante) {
-  const result = await request(`/Estante/${idEstante}`, { method: 'DELETE' })
-
-  if (result.networkError) {
-    return { success: false, message: networkMessage(result) }
-  }
-
-  if (!result.ok) {
-    return { success: false, message: errorMessage(result, 'Não foi possível remover o livro.') }
-  }
-
-  return { success: true }
 }
