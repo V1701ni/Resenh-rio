@@ -1,95 +1,128 @@
-import { useEffect, useState } from 'react'
-import { homeReviews as mockHomeReviews } from '../../data/homeData'
-import { getReviews } from '../../services/api'
+import { useMemo } from 'react'
+import { homeReviews } from '../../data/homeData'
 import { getHomeImage, getProfileImage } from '../../utils/assetLoader'
 
 export function HomeReviews({ query = '' }) {
-  const [reviewsList, setReviewsList] = useState(mockHomeReviews)
+  const filtered = useMemo(() => {
+    const search = query.trim().toLowerCase()
 
-  useEffect(() => {
-    let isMounted = true
-    async function loadReviews() {
-      const data = await getReviews()
-      if (isMounted && data) {
-        setReviewsList(data)
-      }
-    }
-    loadReviews()
-    return () => {
-      isMounted = false
-    }
-  }, [])
+    if (!search) return homeReviews
 
-  const filtered = reviewsList.filter(
-    (item) =>
-      !query ||
-      `${item.title} ${item.reviewer}`
+    return homeReviews.filter((item) =>
+      `${item.title} ${item.reviewer} ${item.copy} ${item.year}`
         .toLowerCase()
-        .includes(query.toLowerCase())
-  )
+        .includes(search)
+    )
+  }, [query])
 
   const renderCover = (cover) => {
-    if (typeof cover === 'string' && (cover.startsWith('http') || cover.startsWith('/'))) {
+    if (
+      typeof cover === 'string' &&
+      (cover.startsWith('http') || cover.startsWith('/'))
+    ) {
       return cover
     }
+
     return getHomeImage(cover)
   }
 
   return (
-    <section className="home-reviews">
-      <h2>AVALIAÇÕES RECENTES</h2>
+    <section className="home-reviews" id="avaliacoes">
+      <header className="home-reviews-heading">
+        <div>
+          <span className="home-reviews-eyebrow">
+            DA COMUNIDADE RESENHÁRIO
+          </span>
+          <h2>Avaliações</h2>
+          <p>
+            Histórias, opiniões e diferentes formas de enxergar uma obra.
+          </p>
+        </div>
 
-      <div>
+        <span className="home-reviews-count">
+          {String(filtered.length).padStart(2, '0')} RESENHAS
+        </span>
+      </header>
+
+      <div className="home-reviews-grid">
         {filtered.length ? (
-          filtered.map((item) => (
-            <article key={item.id || item.title}>
-              <div className="review-author">
-                <img
-                  src={getProfileImage(item.avatar)}
-                  alt={`Avatar de ${item.reviewer}`}
-                />
-                <strong>{item.reviewer}</strong>
-              </div>
+          filtered.map((item) => {
+            const rating = Math.max(0, Math.min(5, Number(item.rating) || 0))
 
-              <div className="review-content">
-                <div className="review-work">
+            return (
+              <article className="home-review-card" key={item.id || item.title}>
+                <div className="home-review-author">
                   <img
-                    src={renderCover(item.cover)}
-                    alt={`Capa de ${item.title}`}
+                    src={getProfileImage(item.avatar)}
+                    alt={`Avatar de ${item.reviewer}`}
+                    loading="lazy"
                   />
 
-                  <div>
-                    <h3>{item.title}</h3>
-                    <span>{item.year}</span>
+                  <div className="home-review-author-info">
+                    <strong>{item.reviewer}</strong>
+                    <span>MEMBRO DA COMUNIDADE</span>
+                  </div>
 
-                    <span
-                      className="review-rating"
-                      aria-label={`${item.rating} de 5 estrelas`}
+                  <span className="home-review-quote-mark" aria-hidden="true">
+                    “
+                  </span>
+                </div>
+
+                <div className="home-review-work">
+                  <img
+                    className="home-review-cover"
+                    src={renderCover(item.cover)}
+                    alt={`Capa de ${item.title}`}
+                    loading="lazy"
+                  />
+
+                  <div className="home-review-work-info">
+                    <span className="home-review-label">RESENHA DE</span>
+                    <h3>{item.title}</h3>
+                    <span className="home-review-year">{item.year}</span>
+
+                    <div
+                      className="home-review-rating"
+                      aria-label={`${rating} de 5 estrelas`}
                     >
-                      {'★'.repeat(item.rating)}
-                      {'☆'.repeat(5 - item.rating)}
-                    </span>
+                      <span aria-hidden="true">
+                        {'★'.repeat(rating)}
+                        {'☆'.repeat(5 - rating)}
+                      </span>
+                      <small>{rating}/5</small>
+                    </div>
                   </div>
                 </div>
 
-                <p>{item.copy}</p>
+                <div className="home-review-divider" />
 
-                <div className="review-meta">
-                  <span className="review-comments">{item.comments}</span>
-                  <span className="review-likes">{item.likes}</span>
-                </div>
+                <p className="home-review-copy">{item.copy}</p>
 
-                <button className="review-read-more" type="button">
-                  LEIA MAIS
-                </button>
-              </div>
-            </article>
-          ))
+                <footer className="home-review-footer">
+                  <span className="home-review-stat">
+                    <span aria-hidden="true">♡</span>
+                    {item.likes || '0 curtidas'}
+                  </span>
+
+                  <span className="home-review-stat">
+                    <span aria-hidden="true">▤</span>
+                    {item.comments || '0 comentários'}
+                  </span>
+                </footer>
+              </article>
+            )
+          })
         ) : (
           <p className="home-empty-state">
             Nenhuma avaliação encontrada para “{query}”.
           </p>
         )}
+      </div>
+
+      <div className="home-reviews-bottom">
+        <span />
+        <p>UMA OBRA. MUITOS OLHARES.</p>
+        <span />
       </div>
     </section>
   )

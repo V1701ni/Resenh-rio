@@ -10,6 +10,8 @@ import {
   removerDaEstante
 } from '../services/api'
 
+const OPCOES_STATUS_ESTANTE = Object.values(STATUS_ESTANTE)
+
 // A Google Books devolve capas com http://, que o navegador bloqueia em sites https.
 function capaSegura(url) {
   return url ? url.replace(/^http:\/\//, 'https://') : null
@@ -20,7 +22,10 @@ function Capa({ url, titulo }) {
 
   if (!src) {
     return (
-      <div className="estante-capa estante-capa--vazia" aria-hidden="true">
+      <div
+        className="estante-capa estante-capa--vazia"
+        aria-hidden="true"
+      >
         {titulo?.charAt(0) || '?'}
       </div>
     )
@@ -52,7 +57,7 @@ function ItemEstante({ item, onStatus, onRemover }) {
               value={item.status}
               onChange={(event) => onStatus(item, event.target.value)}
             >
-              {STATUS_ESTANTE.map((status) => (
+              {OPCOES_STATUS_ESTANTE.map((status) => (
                 <option key={status} value={status}>
                   {status}
                 </option>
@@ -74,7 +79,7 @@ function ItemEstante({ item, onStatus, onRemover }) {
 }
 
 function ResultadoLivro({ book, naEstante, ocupado, onAdicionar }) {
-  const [status, setStatus] = useState('Quero Ler')
+  const [status, setStatus] = useState(STATUS_ESTANTE.QUERO_LER)
 
   return (
     <li className="estante-item">
@@ -99,7 +104,7 @@ function ResultadoLivro({ book, naEstante, ocupado, onAdicionar }) {
                   value={status}
                   onChange={(event) => setStatus(event.target.value)}
                 >
-                  {STATUS_ESTANTE.map((opcao) => (
+                  {OPCOES_STATUS_ESTANTE.map((opcao) => (
                     <option key={opcao} value={opcao}>
                       {opcao}
                     </option>
@@ -123,7 +128,12 @@ function ResultadoLivro({ book, naEstante, ocupado, onAdicionar }) {
   )
 }
 
-export function EstantePage({ onHome, onLogin, onProfile, onEstante }) {
+export function EstantePage({
+  onHome,
+  onLogin,
+  onProfile,
+  onEstante
+}) {
   const usuario = getUsuarioLogado()
   const idUsuario = usuario?.idUsuario
 
@@ -140,30 +150,41 @@ export function EstantePage({ onHome, onLogin, onProfile, onEstante }) {
   const [adicionando, setAdicionando] = useState(null)
   const [aviso, setAviso] = useState(null)
 
-  // Carga inicial: busca a estante assim que a página abre.
   useEffect(() => {
-    if (!idUsuario) return
+    if (!idUsuario) {
+      setCarregando(false)
+      return
+    }
 
     let cancelado = false
 
-    getEstante(idUsuario).then((resposta) => {
-      if (cancelado) return
+    getEstante(idUsuario)
+      .then((resposta) => {
+        if (cancelado) return
 
-      if (resposta.success) {
-        setItens(resposta.items)
-      } else {
-        setAviso({ tipo: 'erro', texto: resposta.message })
-      }
-
-      setCarregando(false)
-    })
+        if (resposta.success) {
+          setItens(resposta.items)
+        } else {
+          setAviso({ tipo: 'erro', texto: resposta.message })
+        }
+      })
+      .catch(() => {
+        if (!cancelado) {
+          setAviso({
+            tipo: 'erro',
+            texto: 'Não foi possível carregar sua estante.'
+          })
+        }
+      })
+      .finally(() => {
+        if (!cancelado) setCarregando(false)
+      })
 
     return () => {
       cancelado = true
     }
   }, [idUsuario])
 
-  // Recarga depois de adicionar um livro (a API devolve o item já com os dados do livro).
   const recarregar = async () => {
     const resposta = await getEstante(idUsuario)
 
@@ -181,39 +202,58 @@ export function EstantePage({ onHome, onLogin, onProfile, onEstante }) {
     setBuscando(true)
     setAviso(null)
 
-    const resposta = await buscarLivros(consulta)
+    try {
+      const resposta = await buscarLivros(consulta)
 
-    setBuscando(false)
-    setBuscou(true)
-    setConsultaFeita(consulta)
+      setBuscou(true)
+      setConsultaFeita(consulta)
 
-    if (!resposta.success) {
+      if (!resposta.success) {
+        setResultados([])
+        setAviso({ tipo: 'erro', texto: resposta.message })
+        return
+      }
+
+      setResultados(resposta.books)
+    } catch {
       setResultados([])
-      setAviso({ tipo: 'erro', texto: resposta.message })
-      return
+      setBuscou(true)
+      setConsultaFeita(consulta)
+      setAviso({
+        tipo: 'erro',
+        texto: 'Não foi possível buscar os livros.'
+      })
+    } finally {
+      setBuscando(false)
     }
-
-    setResultados(resposta.books)
   }
 
   const handleAdicionar = async (book, status) => {
     setAdicionando(book.id || book.googleId)
     setAviso(null)
 
-    const resposta = await adicionarNaEstante(book, status)
+    try {
+      const resposta = await adicionarNaEstante(book, status)
 
-    setAdicionando(null)
+      if (!resposta.success) {
+        setAviso({ tipo: 'erro', texto: resposta.message })
+        return
+      }
 
-    if (!resposta.success) {
-      setAviso({ tipo: 'erro', texto: resposta.message })
-      return
+      setAviso({
+        tipo: 'ok',
+        texto: `“${book.title}” foi adicionado à sua estante.`
+      })
+
+      await recarregar()
+    } catch {
+      setAviso({
+        tipo: 'erro',
+        texto: 'Não foi possível adicionar o livro à estante.'
+      })
+    } finally {
+      setAdicionando(null)
     }
-
-    setAviso({
-      tipo: 'ok',
-      texto: `“${book.title}” foi adicionado à sua estante.`
-    })
-    await recarregar()
   }
 
   const handleStatus = async (item, status) => {
@@ -249,7 +289,14 @@ export function EstantePage({ onHome, onLogin, onProfile, onEstante }) {
       return
     }
 
-    setItens((atuais) => atuais.filter((atual) => atual.id !== item.id))
+    setItens((atuais) =>
+      atuais.filter((atual) => atual.id !== item.id)
+    )
+
+    setAviso({
+      tipo: 'ok',
+      texto: 'Livro removido da estante.'
+    })
   }
 
   const estaNaEstante = (book) =>
@@ -263,7 +310,9 @@ export function EstantePage({ onHome, onLogin, onProfile, onEstante }) {
     itens.filter((item) => item.status === status).length
 
   const itensVisiveis =
-    filtro === 'Todos' ? itens : itens.filter((item) => item.status === filtro)
+    filtro === 'Todos'
+      ? itens
+      : itens.filter((item) => item.status === filtro)
 
   return (
     <main className="estante-page">
@@ -282,7 +331,11 @@ export function EstantePage({ onHome, onLogin, onProfile, onEstante }) {
         {!usuario ? (
           <div className="estante-vazio">
             <p>Entre na sua conta para montar a sua estante virtual.</p>
-            <button type="button" className="estante-botao" onClick={onLogin}>
+            <button
+              type="button"
+              className="estante-botao"
+              onClick={onLogin}
+            >
               ENTRAR
             </button>
           </div>
@@ -300,6 +353,7 @@ export function EstantePage({ onHome, onLogin, onProfile, onEstante }) {
                 placeholder="Busque por título ou autor"
                 aria-label="Buscar livros por título ou autor"
               />
+
               <button
                 type="submit"
                 className="estante-botao"
@@ -310,13 +364,19 @@ export function EstantePage({ onHome, onLogin, onProfile, onEstante }) {
             </form>
 
             {aviso && (
-              <p className={`estante-aviso estante-aviso--${aviso.tipo}`} role="status">
+              <p
+                className={`estante-aviso estante-aviso--${aviso.tipo}`}
+                role="status"
+              >
                 {aviso.texto}
               </p>
             )}
 
             {buscou && (
-              <section className="estante-secao" aria-label="Resultados da busca">
+              <section
+                className="estante-secao"
+                aria-label="Resultados da busca"
+              >
                 <h2>RESULTADOS PARA “{consultaFeita}”</h2>
 
                 {resultados.length === 0 ? (
@@ -328,7 +388,9 @@ export function EstantePage({ onHome, onLogin, onProfile, onEstante }) {
                         key={book.id || book.googleId || indice}
                         book={book}
                         naEstante={estaNaEstante(book)}
-                        ocupado={adicionando === (book.id || book.googleId)}
+                        ocupado={
+                          adicionando === (book.id || book.googleId)
+                        }
                         onAdicionar={handleAdicionar}
                       />
                     ))}
@@ -341,7 +403,7 @@ export function EstantePage({ onHome, onLogin, onProfile, onEstante }) {
               <h2>SEUS LIVROS</h2>
 
               <div className="estante-filtros" role="tablist">
-                {['Todos', ...STATUS_ESTANTE].map((opcao) => (
+                {['Todos', ...OPCOES_STATUS_ESTANTE].map((opcao) => (
                   <button
                     key={opcao}
                     type="button"
