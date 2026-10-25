@@ -3,6 +3,7 @@
 @import './styles/navigation.css';
 @import './styles/home.css';
 @import './styles/profile.css';
+@import './styles/estante.css';
 @import './styles/login.css';
 
 /* Global Interactive & Hover Transitions */

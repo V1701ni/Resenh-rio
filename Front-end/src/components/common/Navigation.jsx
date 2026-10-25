@@ -6,11 +6,22 @@ export function Navigation({
   onStart,
   onProfile,
   onSearch,
-  profileActive = false
+  onEstante,
+  profileActive = false,
+  estanteActive = false
 }) {
   const navigateToHomeSection = (event, section) => {
     event.preventDefault()
     onStart?.(section)
+  }
+
+  // Se a página não passar onEstante, muda o endereço (#estante) e o App troca a tela.
+  const irParaEstante = () => {
+    if (onEstante) {
+      onEstante()
+    } else {
+      window.location.hash = 'estante'
+    }
   }
 
   return (
@@ -51,6 +62,13 @@ export function Navigation({
         >
           NOTÍCIAS
         </a>
+
+        <button
+          className={estanteActive ? 'nav-button active' : 'nav-button'}
+          onClick={irParaEstante}
+        >
+          ESTANTE
+        </button>
 
         <button
           className={profileActive ? 'nav-button active' : 'nav-button'}

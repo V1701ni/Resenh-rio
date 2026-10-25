@@ -253,3 +253,163 @@ export async function criarConta(nome, email, senha) {
 
   return { success: true, user: result.data }
 }
+
+// ---------------------------------------------------------------------------
+// Estante virtual e busca de livros
+// ---------------------------------------------------------------------------
+
+export const STATUS_ESTANTE = ['Quero Ler', 'Lendo', 'Lido', 'Abandonado']
+
+// A API devolve mensagens de erro como texto simples; se não vier texto, usa o padrão.
+function errorMessage(result, fallback) {
+  if (typeof result.data === 'string' && result.data.trim()) {
+    return result.data
+  }
+
+  return fallback
+}
+
+function formatBook(l) {
+  return {
+    id: l.idLivros,
+    googleId: l.googleBId,
+    title: l.titulo,
+    author: l.autor,
+    synopsis: l.sinopse,
+    isbn: l.isbn,
+    cover: l.capaUrl
+  }
+}
+
+export async function getEstante(idUsuario) {
+  const result = await request(`/Estante/usuario/${idUsuario}`)
+
+  if (result.networkError) {
+    return { success: false, message: networkMessage(result), items: [] }
+  }
+
+  if (!result.ok) {
+    return {
+      success: false,
+      message: `Erro no servidor (${result.status}). Tente novamente mais tarde.`,
+      items: []
+    }
+  }
+
+  const items = (result.data || []).map((e) => ({
+    id: e.idEstante,
+    status: e.status,
+    updatedAt: e.dataAtualizacao,
+    book: formatBook(e.livro || {})
+  }))
+
+  return { success: true, items }
+}
+
+export async function buscarLivros(termo) {
+  const result = await request(`/Livros/buscar?q=${encodeURIComponent(termo)}`)
+
+  if (result.networkError) {
+    return { success: false, message: networkMessage(result), books: [] }
+  }
+
+  if (!result.ok) {
+    return {
+      success: false,
+      message: `Erro no servidor (${result.status}). Tente novamente mais tarde.`,
+      books: []
+    }
+  }
+
+  return { success: true, books: (result.data || []).map(formatBook) }
+}
+
+export async function adicionarNaEstante(book, status = 'Quero Ler') {
+  const usuario = getUsuarioLogado()
+
+  if (!usuario) {
+    return { success: false, message: 'Entre na sua conta para usar a estante.' }
+  }
+
+  let idLivro = book.id
+
+  // Livros que vieram da Google Books ainda não existem no banco (id = 0):
+  // primeiro salvamos o livro, depois ligamos ele à estante.
+  if (!idLivro) {
+    const livro = await request('/Livros', {
+      method: 'POST',
+      body: JSON.stringify({
+        titulo: book.title,
+        autor: book.author,
+        sinopse: book.synopsis,
+        isbn: book.isbn,
+        capaUrl: book.cover,
+        googleBId: book.googleId
+      })
+    })
+
+    if (livro.networkError) {
+      return { success: false, message: networkMessage(livro) }
+    }
+
+    if (!livro.ok) {
+      return { success: false, message: errorMessage(livro, 'Não foi possível salvar o livro.') }
+    }
+
+    idLivro = livro.data.idLivros
+  }
+
+  const result = await request('/Estante', {
+    method: 'POST',
+    body: JSON.stringify({
+      idUsuario: usuario.idUsuario,
+      idLivros: idLivro,
+      status
+    })
+  })
+
+  if (result.networkError) {
+    return { success: false, message: networkMessage(result) }
+  }
+
+  if (result.status === 409) {
+    return { success: false, message: 'Este livro já está na sua estante.' }
+  }
+
+  if (!result.ok) {
+    return { success: false, message: errorMessage(result, 'Não foi possível adicionar à estante.') }
+  }
+
+  return { success: true }
+}
+
+export async function atualizarStatusEstante(idEstante, status) {
+  const result = await request(`/Estante/${idEstante}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status })
+  })
+
+  if (result.networkError) {
+    return { success: false, message: networkMessage(result) }
+  }
+
+  if (!result.ok) {
+    return { success: false, message: errorMessage(result, 'Não foi possível atualizar o status.') }
+  }
+
+  return { success: true }
+}
+
+export async function removerDaEstante(idEstante) {
+  const result = await request(`/Estante/${idEstante}`, { method: 'DELETE' })
+
+  if (result.networkError) {
+    return { success: false, message: networkMessage(result) }
+  }
+
+  if (!result.ok) {
+    return { success: false, message: errorMessage(result, 'Não foi possível remover o livro.') }
+  }
+
+  return { success: true }
+}
