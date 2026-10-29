@@ -1,0 +1,358 @@
+/* Profile Page Styles */
+.profile-page {
+  position: relative;
+  min-height: 1600px;
+  overflow: hidden;
+  background: #131313;
+  color: #fff;
+}
+
+.profile-page .hero-background {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 600px;
+  background:
+    linear-gradient(rgba(19, 19, 19, .52), rgba(19, 19, 19, .92)),
+    url('../assets/profile-1.png') center top / cover no-repeat;
+}
+
+.profile-page .site-header {
+  width: 870px;
+  height: 180px;
+}
+
+.profile-page .logo-button {
+  color: #fff;
+  font: 700 30px/1 Lora, Georgia, serif;
+}
+
+.profile-page .site-header nav {
+  margin-right: 31px;
+}
+
+.profile-page .site-header .nav-button {
+  color: var(--muted);
+  font-family: Inter, Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.1px;
+}
+
+.profile-page .site-header .nav-button.active {
+  color: var(--muted);
+}
+
+.profile-page .site-header .nav-button:hover,
+.profile-page .site-header .nav-button.active:hover {
+  color: var(--accent);
+}
+
+.profile-page .page-content {
+  position: relative;
+  z-index: 1;
+  width: 896px;
+  margin: 0 auto;
+}
+
+/* Profile Summary */
+.profile-summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 220px;
+  padding: 26px 24px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  transform: translateY(16px);
+}
+
+.avatar {
+  width: 110px;
+  height: 108px;
+  border-radius: 5px;
+  object-fit: cover;
+}
+
+.profile-description {
+  width: 300px;
+  flex: 0 0 300px;
+  padding-left: 40px;
+}
+
+.profile-description h1 {
+  margin: 0 0 4px;
+  font: 700 30px/1 Lora, Georgia, serif;
+}
+
+.profile-description p {
+  width: 250px;
+  margin: 8px 0 0;
+  color: #d2d2d2;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.stats {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-self: center;
+  justify-content: flex-end;
+  gap: 22px;
+  padding-right: 31px;
+  transform: translateY(8px);
+}
+
+.stats div {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 62px;
+  padding-left: 14px;
+}
+
+.stats div + div::before {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, .12);
+  content: '';
+}
+
+.stats span {
+  color: #a6a6a6;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.3px;
+  white-space: nowrap;
+}
+
+.stats strong {
+  color: #fff;
+  font: 700 24px/1 Lora, Georgia, serif;
+}
+
+/* Profile Media Section */
+.media-section {
+  position: relative;
+  margin-top: 60px;
+}
+
+.media-section h2,
+.activity-section h2 {
+  position: relative;
+  display: inline-block;
+  margin: 0 0 34px;
+  color: #c3c3c3;
+  font-size: 12px;
+  letter-spacing: 2px;
+}
+
+.media-section h2::after,
+.activity-section h2::after {
+  position: absolute;
+  right: 0;
+  bottom: -11px;
+  left: 0;
+  height: 2px;
+  border-radius: 99px;
+  background: var(--accent);
+  content: '';
+  opacity: .65;
+}
+
+.profile-media-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.profile-media-track {
+  display: flex;
+  gap: 17px;
+}
+
+.media-item {
+  position: relative;
+  isolation: isolate;
+  margin: 0;
+  width: 130px;
+}
+
+.media-item img {
+  display: block;
+  width: 130px;
+  height: 194px;
+  border-radius: 5px;
+  object-fit: cover;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, .15);
+  transition: transform .45s var(--ease-smooth), filter .45s var(--ease-soft), opacity .45s var(--ease-soft), box-shadow .45s var(--ease-smooth);
+}
+
+.profile-media-row:hover .media-item:not(:hover) img {
+  opacity: .78;
+}
+
+.media-item p {
+  margin: 10px 0 0;
+  color: #fff;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: .8px;
+}
+
+.media-item p span,
+.media-item p .media-rating-star {
+  color: #fff;
+}
+
+.profile-media-row > button {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  width: 24px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #f8bb76;
+  font-size: 42px;
+  line-height: 1;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.profile-media-row > button:first-child {
+  left: -34px;
+}
+
+.profile-media-row > button:last-child {
+  right: -34px;
+}
+
+.profile-media-row > button:hover {
+  background: rgba(248, 187, 118, .12);
+}
+
+/* Activity Cards */
+.activity-section {
+  position: relative;
+  margin-top: 68px;
+}
+
+.activity-grid {
+  display: grid;
+  grid-template-columns: 422px 422px;
+  gap: 18px;
+}
+
+.activity-card {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-height: 359px;
+  padding: 31px 24px 20px;
+  border: 1px solid rgba(255, 255, 255, .04);
+  border-radius: 5px;
+  background: #1d1d1d;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, .15);
+}
+
+.activity-card::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 1px solid rgba(255, 255, 255, .04);
+  border-radius: inherit;
+  content: '';
+  pointer-events: none;
+}
+
+.activity-card.compact {
+  min-height: 242px;
+}
+
+.activity-top {
+  display: flex;
+  gap: 18px;
+}
+
+.activity-top img {
+  width: 84px;
+  height: 99px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.activity-top h3 {
+  width: 270px;
+  margin: 0 0 8px;
+  font: 700 18px/1.2 Lora, Georgia, serif;
+}
+
+.year {
+  color: #918f8f;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.rating {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 9px;
+  color: #878787;
+  font-size: 9px;
+}
+
+.rating .stars {
+  color: #c79952;
+  font-size: 20px;
+  letter-spacing: 1px;
+}
+
+.rating .likes {
+  color: #878787;
+  font-size: 20px;
+}
+
+.rating .comments {
+  color: #918f8f;
+  font-size: 14px;
+  letter-spacing: .3px;
+}
+
+.activity-copy {
+  flex: 1;
+  margin: 22px 5px 0;
+  color: #cdcdcd;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.activity-read-more {
+  display: block;
+  width: auto;
+  min-height: 18px;
+  margin: 18px 5px 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font: 700 10px/1 Inter, Arial, sans-serif;
+  letter-spacing: 1.4px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.activity-read-more:hover {
+  color: var(--accent);
+}

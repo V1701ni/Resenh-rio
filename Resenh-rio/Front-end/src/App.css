@@ -1,0 +1,47 @@
+/* Master Stylesheet - Resenhario Front-End */
+@import './styles/variables.css';
+@import './styles/navigation.css';
+@import './styles/home.css';
+@import './styles/profile.css';
+@import './styles/login.css';
+
+/* Global Interactive & Hover Transitions */
+@media (hover: hover) {
+  .site-header .logo-button,
+  .site-header nav a,
+  .site-header nav .nav-button,
+  .login-card,
+  .login-submit,
+  .home-hero-copy .home-read-more,
+  .home-media-row button,
+  .home-reviews .review-read-more,
+  .profile-page .activity-read-more,
+  .home-news b,
+  .media-item,
+  .activity-card,
+  .home-reviews article,
+  .home-news article {
+    transition: transform .38s var(--ease-smooth), box-shadow .38s var(--ease-smooth), color .3s var(--ease-soft);
+  }
+
+  .site-header .logo-button:hover,
+  .site-header nav a:hover,
+  .site-header nav .nav-button:hover,
+  .login-card:hover,
+  .login-submit:hover,
+  .home-hero-copy .home-read-more:hover,
+  .home-media-row button:hover,
+  .home-reviews .review-read-more:hover,
+  .profile-page .activity-read-more:hover,
+  .home-news b:hover {
+    transform: scale(1.04);
+  }
+
+  .media-item:hover,
+  .activity-card:hover,
+  .home-reviews article:hover,
+  .home-news article:hover {
+    transform: scale(1.025);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .3);
+  }
+}
